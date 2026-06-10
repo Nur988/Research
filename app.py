@@ -1,4 +1,3 @@
-import io
 import json
 import os
 import shutil
@@ -12,12 +11,9 @@ from langchain_classic.memory import ConversationBufferMemory
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_ollama import ChatOllama, OllamaEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from pypdf import PdfReader
 
 import question_engine
-
-DATA_DIR = Path(__file__).parent / "data"
+from question_engine import file_to_documents, load_docs_from_data_dir
 
 
 def _fetch_ollama_models(base_url: str):
@@ -43,44 +39,7 @@ def _fetch_ollama_models(base_url: str):
         return ["llama3.2", "llama3", "mistral"], ["nomic-embed-text"]
 FAISS_INDEX_PATH = "faiss_index"
 
-# ── Document helpers ────────────────────────────────────────────────────────
-
-def extract_text_from_pdf(file: io.BytesIO) -> str:
-    reader = PdfReader(file)
-    pages = []
-    for page in reader.pages:
-        try:
-            pages.append(page.extract_text() or "")
-        except Exception:
-            pages.append("")
-    return "\n".join(pages)
-
-
-def _file_to_documents(name: str, data: bytes, chunk_size: int, chunk_overlap: int) -> List[Document]:
-    ext = (name.split(".")[-1] or "").lower()
-    if ext == "pdf":
-        content = extract_text_from_pdf(io.BytesIO(data))
-    elif ext in ("txt", "md"):
-        content = data.decode("utf-8", errors="ignore")
-    else:
-        try:
-            content = data.decode("utf-8", errors="ignore")
-        except Exception:
-            content = ""
-
-    if not content.strip():
-        return []
-
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-        separators=["\n\n", "\n", " ", ""],
-    )
-    return [
-        Document(page_content=c, metadata={"source": name, "chunk": i})
-        for i, c in enumerate(splitter.split_text(content))
-    ]
-
+# ── Document helpers (loading logic lives in question_engine) ───────────────
 
 def to_documents(
     uploaded_files,
@@ -89,15 +48,7 @@ def to_documents(
 ) -> List[Document]:
     docs = []
     for uf in uploaded_files:
-        docs.extend(_file_to_documents(uf.name, uf.read(), chunk_size, chunk_overlap))
-    return docs
-
-
-def load_bundled_docs(chunk_size: int = 1000, chunk_overlap: int = 150) -> List[Document]:
-    docs = []
-    for path in DATA_DIR.iterdir():
-        if path.suffix.lower() in (".pdf", ".txt", ".md"):
-            docs.extend(_file_to_documents(path.name, path.read_bytes(), chunk_size, chunk_overlap))
+        docs.extend(file_to_documents(uf.name, uf.read(), chunk_size, chunk_overlap))
     return docs
 
 # ── Vector store ────────────────────────────────────────────────────────────
@@ -261,7 +212,7 @@ if st.session_state.vectorstore is None:
         st.session_state.chain = build_cr_chain(saved_vs, model, temperature, k, ollama_base_url)
         st.info("Loaded existing index from disk. Ready to use.")
     else:
-        bundled = load_bundled_docs()
+        bundled = load_docs_from_data_dir()
         if bundled:
             with st.spinner(f"Auto-indexing {len(bundled)} chunks from bundled curriculum files…"):
                 try:

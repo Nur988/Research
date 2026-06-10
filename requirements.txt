@@ -9,4 +9,5 @@ faiss-cpu
 pypdf
 tiktoken
 pandas
+python-docx
 

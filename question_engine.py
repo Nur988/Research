@@ -2,22 +2,140 @@
 question_engine.py — standalone question generation for the K-12 RAG system.
 
 No Streamlit dependency; safe to import in tests, notebooks, or CLI scripts.
+
+Also owns the shared document-loading pipeline used by both app.py and
+run_experiment.py:
+
+    load_docs_from_data_dir()   → List[Document]
+    build_vectorstore()         → FAISS  (creates + optionally saves index)
 """
 
+import io
 import json
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from langchain_core.documents import Document
 from langchain_ollama import ChatOllama
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "llama3.2"
+DEFAULT_MODEL      = "llama3.2"
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
+DATA_DIR           = Path(__file__).parent / "data"
+
 _RETRIEVAL_QUERY = "main concepts key ideas overview"
-_RETRIEVAL_K = 8
-_CHUNK_PREVIEW = 600
+_RETRIEVAL_K     = 8
+_CHUNK_PREVIEW   = 600
+
+
+# ── Document loading (shared with app.py) ─────────────────────────────────────
+
+def _extract_pdf_text(data: bytes) -> str:
+    from pypdf import PdfReader
+    reader = PdfReader(io.BytesIO(data))
+    pages = []
+    for page in reader.pages:
+        try:
+            pages.append(page.extract_text() or "")
+        except Exception:
+            pages.append("")
+    return "\n".join(pages)
+
+
+def _extract_docx_text(data: bytes) -> str:
+    from docx import Document as DocxDocument
+    doc = DocxDocument(io.BytesIO(data))
+    parts: List[str] = []
+    for para in doc.paragraphs:
+        if para.text.strip():
+            parts.append(para.text)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                if cell.text.strip():
+                    parts.append(cell.text)
+    return "\n".join(parts)
+
+
+def file_to_documents(
+    name: str,
+    data: bytes,
+    chunk_size: int = 1000,
+    chunk_overlap: int = 150,
+) -> List[Document]:
+    """Convert raw file bytes to a list of chunked Documents.
+
+    Handles: .pdf, .txt, .md, .docx
+    Skips temp lock files (names starting with ~$).
+    """
+    if name.startswith("~$"):
+        return []
+
+    ext = (name.rsplit(".", 1)[-1] or "").lower()
+    if ext == "pdf":
+        content = _extract_pdf_text(data)
+    elif ext in ("txt", "md"):
+        content = data.decode("utf-8", errors="ignore")
+    elif ext == "docx":
+        content = _extract_docx_text(data)
+    else:
+        content = data.decode("utf-8", errors="ignore")
+
+    if not content.strip():
+        return []
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        separators=["\n\n", "\n", " ", ""],
+    )
+    return [
+        Document(page_content=c, metadata={"source": name, "chunk": i})
+        for i, c in enumerate(splitter.split_text(content))
+    ]
+
+
+def load_docs_from_data_dir(
+    data_dir: Optional[Path] = None,
+    chunk_size: int = 1000,
+    chunk_overlap: int = 150,
+) -> List[Document]:
+    """Load and chunk all supported documents from data_dir (default: data/).
+
+    Supported formats: .pdf  .txt  .md  .docx
+    Temp Word lock files (~$...) are automatically skipped.
+    """
+    data_dir = data_dir or DATA_DIR
+    docs: List[Document] = []
+    for path in sorted(data_dir.iterdir()):
+        if path.suffix.lower() in (".pdf", ".txt", ".md", ".docx"):
+            docs.extend(file_to_documents(path.name, path.read_bytes(), chunk_size, chunk_overlap))
+    return docs
+
+
+def build_vectorstore(
+    docs: List[Document],
+    embed_model: str = "nomic-embed-text",
+    ollama_url: Optional[str] = None,
+    save_path: Optional[Path] = None,
+):
+    """Embed docs with OllamaEmbeddings and build a FAISS vectorstore.
+
+    If save_path is provided the index is saved to disk so run_experiment.py
+    and app.py can reload it without re-embedding.
+    """
+    from langchain_community.vectorstores import FAISS
+    from langchain_ollama import OllamaEmbeddings
+
+    url        = ollama_url or DEFAULT_OLLAMA_URL
+    embeddings = OllamaEmbeddings(model=embed_model, base_url=url)
+    vs         = FAISS.from_documents(docs, embeddings)
+    if save_path is not None:
+        vs.save_local(str(save_path))
+    return vs
 
 GRADE_DESCRIPTIONS: Dict[str, str] = {
     "K-2":  "kindergarten to grade 2 (ages 5–7). Use very simple words, short sentences, and concrete examples.",
@@ -97,12 +215,15 @@ def _build_prompt(
 def _parse_response(raw: str) -> List[dict]:
     """Parse LLM output into a list of question dicts.
 
-    Strips markdown code fences defensively even when format='json' is set,
-    then validates the result is a non-empty list of objects.
+    Accepts either a JSON array OR a single JSON object (llama3.2 with
+    format='json' consistently returns one object regardless of n= in the
+    prompt). A single object is wrapped in a one-element list.
+
+    Strips markdown code fences defensively, then validates structure.
 
     Raises:
         json.JSONDecodeError: output is not valid JSON.
-        ValueError: output is valid JSON but not a list of objects.
+        ValueError: output is valid JSON but not a dict or list of dicts.
     """
     text = raw.strip()
     if text.startswith("```"):
@@ -114,8 +235,11 @@ def _parse_response(raw: str) -> List[dict]:
 
     data = json.loads(text)
 
+    if isinstance(data, dict):
+        # Single question object — model returned one item instead of an array.
+        return [data]
     if not isinstance(data, list):
-        raise ValueError(f"Expected a JSON array, got {type(data).__name__}: {text[:120]}")
+        raise ValueError(f"Expected a JSON object or array, got {type(data).__name__}: {text[:120]}")
     if data and not isinstance(data[0], dict):
         raise ValueError(f"Array elements must be objects, got {type(data[0]).__name__}")
 
@@ -181,62 +305,52 @@ def generate_questions(
         context = "\n\n".join(c["content"] for c in retrieved_chunks)
 
     # ── Build prompt and LLM ─────────────────────────────────────────────────
-    prompt = _build_prompt(context, n, question_type, grade_band, bloom_level)
+    # Ask for one question per call: llama3.2 with format="json" reliably
+    # returns a single JSON object and ignores array-of-N instructions.
+    # We loop n times and collect individual results.
+    single_prompt = _build_prompt(context, 1, question_type, grade_band, bloom_level)
+    retry_prompt  = single_prompt + _RETRY_SUFFIX
     llm = ChatOllama(model=model, temperature=temperature, base_url=url, format="json")
 
-    # ── Attempt 1 ────────────────────────────────────────────────────────────
-    response = llm.invoke(prompt)
-    raw = response.content.strip()
-    logger.debug("Attempt 1 raw output [model=%s retrieval=%s] (first 300 chars): %s",
-                 model, retrieval, raw[:300])
+    questions: List[dict] = []
+    per_q_failures = 0
 
-    try:
-        questions = _parse_response(raw)
-        logger.info("Questions generated successfully on attempt 1 [model=%s retrieval=%s n=%d]",
-                    model, retrieval, len(questions))
-        return {
-            "questions":        questions,
-            "retrieved_chunks": retrieved_chunks,
-            "raw_prompt":       prompt,
-            "parse_failed":     False,
-            "model":            model,
-            "retrieval":        retrieval,
-        }
-    except (json.JSONDecodeError, ValueError) as exc:
-        logger.warning(
-            "Parse attempt 1 failed [model=%s retrieval=%s]: %s | raw=%s",
-            model, retrieval, exc, raw[:200],
-        )
+    for q_idx in range(1, n + 1):
+        # ── Attempt 1 ────────────────────────────────────────────────────────
+        raw = llm.invoke(single_prompt).content.strip()
+        logger.debug("Q%d attempt 1 [model=%s retrieval=%s]: %s",
+                     q_idx, model, retrieval, raw[:200])
+        try:
+            questions.extend(_parse_response(raw))
+            logger.debug("Q%d attempt 1 OK", q_idx)
+            continue
+        except (json.JSONDecodeError, ValueError) as exc:
+            logger.warning("Q%d attempt 1 failed [model=%s retrieval=%s]: %s | raw=%s",
+                           q_idx, model, retrieval, exc, raw[:200])
 
-    # ── Attempt 2 — retry with clarification appended ────────────────────────
-    retry_prompt = prompt + _RETRY_SUFFIX
-    response2 = llm.invoke(retry_prompt)
-    raw2 = response2.content.strip()
-    logger.debug("Attempt 2 raw output [model=%s retrieval=%s] (first 300 chars): %s",
-                 model, retrieval, raw2[:300])
+        # ── Attempt 2 — retry with clarification ─────────────────────────────
+        raw2 = llm.invoke(retry_prompt).content.strip()
+        logger.debug("Q%d attempt 2 [model=%s retrieval=%s]: %s",
+                     q_idx, model, retrieval, raw2[:200])
+        try:
+            questions.extend(_parse_response(raw2))
+            logger.info("Q%d attempt 2 OK (retry) [model=%s retrieval=%s]",
+                        q_idx, model, retrieval)
+        except (json.JSONDecodeError, ValueError) as exc:
+            logger.error("Q%d attempt 2 failed [model=%s retrieval=%s]: %s | raw=%s",
+                         q_idx, model, retrieval, exc, raw2[:200])
+            per_q_failures += 1
 
-    try:
-        questions = _parse_response(raw2)
-        logger.info("Questions generated successfully on attempt 2 (retry) [model=%s retrieval=%s n=%d]",
-                    model, retrieval, len(questions))
-        return {
-            "questions":        questions,
-            "retrieved_chunks": retrieved_chunks,
-            "raw_prompt":       retry_prompt,
-            "parse_failed":     False,
-            "model":            model,
-            "retrieval":        retrieval,
-        }
-    except (json.JSONDecodeError, ValueError) as exc:
-        logger.error(
-            "Parse attempt 2 (retry) failed [model=%s retrieval=%s]: %s | raw=%s",
-            model, retrieval, exc, raw2[:200],
-        )
-        return {
-            "questions":        [],
-            "retrieved_chunks": retrieved_chunks,
-            "raw_prompt":       retry_prompt,
-            "parse_failed":     True,
-            "model":            model,
-            "retrieval":        retrieval,
-        }
+    parse_failed = len(questions) == 0
+    if questions:
+        logger.info("Cell complete [model=%s retrieval=%s]: %d/%d questions, %d failures",
+                    model, retrieval, len(questions), n, per_q_failures)
+
+    return {
+        "questions":        questions,
+        "retrieved_chunks": retrieved_chunks,
+        "raw_prompt":       single_prompt,
+        "parse_failed":     parse_failed,
+        "model":            model,
+        "retrieval":        retrieval,
+    }
