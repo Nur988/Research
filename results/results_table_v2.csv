@@ -1,0 +1,12 @@
+Condition,N,Parse Fail %,Mean Flaws,% Acceptable,Top Flaw
+RAG | 3-5 | Remember,15,0.0,1.07,86.7,answer_position_bias
+RAG | 3-5 | Analyze,15,0.0,0.20,100.0,duplicate_options
+RAG | 9-12 | Remember,15,0.0,1.60,46.7,longest_option_correct
+RAG | 9-12 | Analyze,15,0.0,0.93,93.3,answer_position_bias
+Zero-shot | 3-5 | Remember,15,0.0,0.87,100.0,longest_option_correct
+Zero-shot | 3-5 | Analyze,15,0.0,1.07,93.3,longest_option_correct
+Zero-shot | 9-12 | Remember,15,0.0,0.07,100.0,longest_option_correct
+Zero-shot | 9-12 | Analyze,15,0.0,0.93,86.7,answer_position_bias
+RAG — all conditions,60,0.0,0.95,81.7,answer_position_bias
+Zero-shot — all conditions,60,0.0,0.73,95.0,longest_option_correct
+RAG faithfulness: 55.0% | Zero-shot: N/A,60,—,—,—,—
