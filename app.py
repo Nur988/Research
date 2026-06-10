@@ -18,6 +18,29 @@ from pypdf import PdfReader
 import question_engine
 
 DATA_DIR = Path(__file__).parent / "data"
+
+
+def _fetch_ollama_models(base_url: str):
+    """Return (chat_models, embed_models) sorted newest-first from the live Ollama instance.
+
+    Falls back to hardcoded defaults if Ollama is unreachable.
+    """
+    import urllib.request
+    _EMBED_KEYWORDS = ("embed", "nomic", "bge", "e5", "minilm")
+    try:
+        with urllib.request.urlopen(f"{base_url}/api/tags", timeout=2) as r:
+            data = json.loads(r.read())
+        models = sorted(
+            data.get("models", []),
+            key=lambda m: m.get("modified_at", ""),
+            reverse=True,
+        )
+        names = [m["name"] for m in models]
+        chat   = [n for n in names if not any(k in n.lower() for k in _EMBED_KEYWORDS)] or ["llama3.2"]
+        embed  = [n for n in names if     any(k in n.lower() for k in _EMBED_KEYWORDS)] or ["nomic-embed-text"]
+        return chat, embed
+    except Exception:
+        return ["llama3.2", "llama3", "mistral"], ["nomic-embed-text"]
 FAISS_INDEX_PATH = "faiss_index"
 
 # ── Document helpers ────────────────────────────────────────────────────────
@@ -192,16 +215,11 @@ with st.sidebar:
     )
     os.environ["OLLAMA_BASE_URL"] = ollama_base_url
 
-    model = st.selectbox(
-        "Chat model",
-        ["llama3.2", "llama3", "llama3.1", "llama2", "mistral", "phi3"],
-        index=0,
+    _chat_models, _embed_models = _fetch_ollama_models(
+        os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     )
-    embed_model = st.selectbox(
-        "Embedding model",
-        ["nomic-embed-text", "llama3.2", "llama3.1", "llama3", "mistral"],
-        index=0,
-    )
+    model = st.selectbox("Chat model", _chat_models, index=0)
+    embed_model = st.selectbox("Embedding model", _embed_models, index=0)
     temperature = st.slider("Temperature", 0.0, 1.0, 0.2, 0.05)
     k = st.slider("Retriever top-k", 1, 10, 4, 1)
 
