@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# FAISS index (generated at runtime)
+faiss_index/
+
+# macOS
+.DS_Store
