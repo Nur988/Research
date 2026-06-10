@@ -1,0 +1,60 @@
+Experiment 003 Verification Log
+Generated: 2026-06-11T02:05:46.731307
+
+003b model selection: None of ['llama3.1:8b', 'mistral:7b', 'gemma2:9b'] found on Ollama. Available chat models: ['llama3', 'llama3.2']. Falling back to llama3.2.
+
+============================================================
+Verification — 003a  (experiment_003a.jsonl)
+============================================================
+Records found : 120  (expected 120)
+Record count  : OK (120)
+Required fields: OK (all present)
+
+Diversity check (8-word prefix uniqueness per cell):
+    RAG|3-5|Analyze: 'what is the main difference between a living' × 7
+  RAG|3-5|Analyze: 5/15 unique  ⚠ >3 sharing same prefix
+  RAG|3-5|Remember: 8/15 unique
+    RAG|9-12|Analyze: 'compare the role of body systems in regulating' × 7
+    RAG|9-12|Analyze: 'how do systems of classification change over time?' × 7
+  RAG|9-12|Analyze: 3/15 unique  ⚠ >3 sharing same prefix
+    RAG|9-12|Remember: 'what is the primary function of negative feedback' × 8
+    RAG|9-12|Remember: 'what is the primary function of a negative' × 7
+  RAG|9-12|Remember: 2/15 unique  ⚠ >3 sharing same prefix
+    ZeroShot|3-5|Analyze: 'what is the main difference between a simile' × 7
+  ZeroShot|3-5|Analyze: 7/15 unique  ⚠ >3 sharing same prefix
+    ZeroShot|3-5|Remember: 'what is the main purpose of a stop' × 5
+  ZeroShot|3-5|Remember: 7/15 unique  ⚠ >3 sharing same prefix
+    ZeroShot|9-12|Analyze: 'analyze the relationship between the concept of identity' × 5
+    ZeroShot|9-12|Analyze: 'analyze the relationship between the rise of industrialization' × 8
+  ZeroShot|9-12|Analyze: 4/15 unique  ⚠ >3 sharing same prefix
+    ZeroShot|9-12|Remember: 'what is the term for the process by' × 15
+  ZeroShot|9-12|Remember: 1/15 unique  ⚠ >3 sharing same prefix
+
+--- Post-scoring verification: 003a ---
+  Faithfulness: OK (all RAG records scored)
+  IWF flaws: OK (all records have flaw list)
+
+============================================================
+Verification — 003b  (experiment_003b.jsonl)
+============================================================
+Records found : 120  (expected 120)
+Record count  : OK (120)
+Required fields: OK (all present)
+
+Diversity check (8-word prefix uniqueness per cell):
+  RAG|3-5|Analyze: 15/15 unique
+  RAG|3-5|Remember: 11/15 unique
+  RAG|9-12|Analyze: 12/15 unique
+    RAG|9-12|Remember: 'what is the primary function of a negative' × 8
+  RAG|9-12|Remember: 5/15 unique  ⚠ >3 sharing same prefix
+    ZeroShot|3-5|Analyze: 'what is the main difference between a simile' × 4
+  ZeroShot|3-5|Analyze: 12/15 unique  ⚠ >3 sharing same prefix
+  ZeroShot|3-5|Remember: 11/15 unique
+  ZeroShot|9-12|Analyze: 14/15 unique
+    ZeroShot|9-12|Remember: 'what is the term for the process by' × 9
+    ZeroShot|9-12|Remember: 'what is the primary function of the mitochondria' × 4
+  ZeroShot|9-12|Remember: 3/15 unique  ⚠ >3 sharing same prefix
+
+--- Post-scoring verification: 003b ---
+  Faithfulness: OK (all RAG records scored)
+  IWF flaws: OK (all records have flaw list)

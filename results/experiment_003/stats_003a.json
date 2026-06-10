@@ -1,0 +1,130 @@
+{
+  "experiment_id": "003a",
+  "model": "llama3.2",
+  "total_questions": 120,
+  "aggregate_RAG": {
+    "n_acceptable": 52,
+    "pct_acceptable": 86.7,
+    "n_faithful": 10,
+    "pct_faithful": 16.7,
+    "mean_flaws": 0.667,
+    "diversity": 18,
+    "most_common_flaw": "answer_position_bias",
+    "parse_failures": 0
+  },
+  "aggregate_zero_shot": {
+    "n_acceptable": 54,
+    "pct_acceptable": 91.7,
+    "mean_flaws": 0.683,
+    "diversity": 19,
+    "most_common_flaw": "answer_position_bias",
+    "parse_failures": 0
+  },
+  "length_balance_retries": 42,
+  "conditions": {
+    "RAG | 3-5 | Remember": {
+      "total_questions": 15,
+      "n_acceptable": 12,
+      "pct_acceptable": 80.0,
+      "mean_flaw_count": 0.733,
+      "n_faithful": 2,
+      "pct_faithful": 13.3,
+      "diversity_score": 8,
+      "most_common_flaw": "longest_option_correct",
+      "parse_failures": 0,
+      "model_used": "llama3.2",
+      "retrieval_query": "science Year 3 Year 4 Year 5 upper primary curriculum recall identify name define key facts concepts"
+    },
+    "RAG | 3-5 | Analyze": {
+      "total_questions": 15,
+      "n_acceptable": 14,
+      "pct_acceptable": 93.3,
+      "mean_flaw_count": 0.6,
+      "n_faithful": 3,
+      "pct_faithful": 20.0,
+      "diversity_score": 5,
+      "most_common_flaw": "answer_position_bias",
+      "parse_failures": 0,
+      "model_used": "llama3.2",
+      "retrieval_query": "science Year 3 Year 4 Year 5 upper primary curriculum compare contrast differentiate analyse cause effect"
+    },
+    "RAG | 9-12 | Remember": {
+      "total_questions": 15,
+      "n_acceptable": 15,
+      "pct_acceptable": 100.0,
+      "mean_flaw_count": 0.533,
+      "n_faithful": 3,
+      "pct_faithful": 20.0,
+      "diversity_score": 2,
+      "most_common_flaw": "answer_position_bias",
+      "parse_failures": 0,
+      "model_used": "llama3.2",
+      "retrieval_query": "science Year 9 Year 10 upper secondary curriculum recall identify name define key facts concepts"
+    },
+    "RAG | 9-12 | Analyze": {
+      "total_questions": 15,
+      "n_acceptable": 11,
+      "pct_acceptable": 73.3,
+      "mean_flaw_count": 0.8,
+      "n_faithful": 2,
+      "pct_faithful": 13.3,
+      "diversity_score": 3,
+      "most_common_flaw": "answer_position_bias",
+      "parse_failures": 0,
+      "model_used": "llama3.2",
+      "retrieval_query": "science Year 9 Year 10 upper secondary curriculum compare contrast differentiate analyse cause effect"
+    },
+    "Zero-shot | 3-5 | Remember": {
+      "total_questions": 15,
+      "n_acceptable": 14,
+      "pct_acceptable": 93.3,
+      "mean_flaw_count": 0.8,
+      "n_faithful": 0,
+      "pct_faithful": 0.0,
+      "diversity_score": 7,
+      "most_common_flaw": "answer_position_bias",
+      "parse_failures": 0,
+      "model_used": "llama3.2",
+      "retrieval_query": ""
+    },
+    "Zero-shot | 3-5 | Analyze": {
+      "total_questions": 15,
+      "n_acceptable": 11,
+      "pct_acceptable": 73.3,
+      "mean_flaw_count": 1.0,
+      "n_faithful": 0,
+      "pct_faithful": 0.0,
+      "diversity_score": 7,
+      "most_common_flaw": "answer_position_bias",
+      "parse_failures": 0,
+      "model_used": "llama3.2",
+      "retrieval_query": ""
+    },
+    "Zero-shot | 9-12 | Remember": {
+      "total_questions": 15,
+      "n_acceptable": 15,
+      "pct_acceptable": 100.0,
+      "mean_flaw_count": 0.4,
+      "n_faithful": 0,
+      "pct_faithful": 0.0,
+      "diversity_score": 1,
+      "most_common_flaw": "answer_position_bias",
+      "parse_failures": 0,
+      "model_used": "llama3.2",
+      "retrieval_query": ""
+    },
+    "Zero-shot | 9-12 | Analyze": {
+      "total_questions": 15,
+      "n_acceptable": 15,
+      "pct_acceptable": 100.0,
+      "mean_flaw_count": 0.533,
+      "n_faithful": 0,
+      "pct_faithful": 0.0,
+      "diversity_score": 4,
+      "most_common_flaw": "answer_position_bias",
+      "parse_failures": 0,
+      "model_used": "llama3.2",
+      "retrieval_query": ""
+    }
+  }
+}

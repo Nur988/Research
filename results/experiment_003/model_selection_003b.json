@@ -1,0 +1,12 @@
+{
+  "experiment_id": "003b",
+  "model_selected": "llama3.2",
+  "model_note": "None of ['llama3.1:8b', 'mistral:7b', 'gemma2:9b'] found on Ollama. Available chat models: ['llama3', 'llama3.2']. Falling back to llama3.2.",
+  "preference_list": [
+    "llama3.1:8b",
+    "mistral:7b",
+    "gemma2:9b"
+  ],
+  "fallback": "llama3.2",
+  "timestamp": "2026-06-11T02:05:54.551665"
+}

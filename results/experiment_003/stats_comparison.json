@@ -1,0 +1,117 @@
+{
+  "description": "Delta table for numeric metrics across experiments. direction='improved' means the change was beneficial.",
+  "deltas": {
+    "rag_pct_acceptable": {
+      "003a_vs_002": {
+        "delta": 5.0,
+        "direction": "improved"
+      },
+      "003b_vs_002": {
+        "delta": 11.6,
+        "direction": "improved"
+      },
+      "003b_vs_003a": {
+        "delta": 6.6,
+        "direction": "improved"
+      }
+    },
+    "rag_pct_faithful": {
+      "003a_vs_002": {
+        "delta": -38.3,
+        "direction": "degraded"
+      },
+      "003b_vs_002": {
+        "delta": -28.3,
+        "direction": "degraded"
+      },
+      "003b_vs_003a": {
+        "delta": 10.0,
+        "direction": "improved"
+      }
+    },
+    "rag_mean_flaws": {
+      "003a_vs_002": {
+        "delta": -0.28,
+        "direction": "improved"
+      },
+      "003b_vs_002": {
+        "delta": -0.37,
+        "direction": "improved"
+      },
+      "003b_vs_003a": {
+        "delta": -0.08,
+        "direction": "improved"
+      }
+    },
+    "rag_diversity": {
+      "003a_vs_002": {
+        "delta": 6.0,
+        "direction": "improved"
+      },
+      "003b_vs_002": {
+        "delta": 30.0,
+        "direction": "improved"
+      },
+      "003b_vs_003a": {
+        "delta": 24.0,
+        "direction": "improved"
+      }
+    },
+    "rag_parse_failures": {
+      "003a_vs_002": {
+        "delta": 0.0,
+        "direction": "neutral"
+      },
+      "003b_vs_002": {
+        "delta": 0.0,
+        "direction": "neutral"
+      },
+      "003b_vs_003a": {
+        "delta": 0.0,
+        "direction": "neutral"
+      }
+    },
+    "zero_pct_acceptable": {
+      "003a_vs_002": {
+        "delta": -3.3,
+        "direction": "degraded"
+      },
+      "003b_vs_002": {
+        "delta": -8.3,
+        "direction": "degraded"
+      },
+      "003b_vs_003a": {
+        "delta": -5.0,
+        "direction": "degraded"
+      }
+    },
+    "zero_mean_flaws": {
+      "003a_vs_002": {
+        "delta": -0.05,
+        "direction": "improved"
+      },
+      "003b_vs_002": {
+        "delta": 0.12,
+        "direction": "degraded"
+      },
+      "003b_vs_003a": {
+        "delta": 0.17,
+        "direction": "degraded"
+      }
+    },
+    "zero_diversity": {
+      "003a_vs_002": {
+        "delta": 4.0,
+        "direction": "improved"
+      },
+      "003b_vs_002": {
+        "delta": 25.0,
+        "direction": "improved"
+      },
+      "003b_vs_003a": {
+        "delta": 21.0,
+        "direction": "improved"
+      }
+    }
+  }
+}
